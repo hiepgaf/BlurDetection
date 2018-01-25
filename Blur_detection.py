@@ -1,7 +1,6 @@
 # USAGE
-# python Blur_detector.py --images [image path]
+# python Blur_detector.py --images sampleImages
 # import the necessary packages
-#Author : Rajasekhar Josyula (rajasekhar.josyula@gmail.com)
 from imutils import paths
 import argparse
 import cv2
@@ -26,7 +25,7 @@ try:
 except OSError:
     pass
 open_file = open("Blur_detector_results.csv", "a")
-columnTitleRow = "BPLR_Name,BlurType,Laplacian Variance, FFT_Mean, FFT_Freq, ImageFileNumber\n"
+columnTitleRow = "BPLR_Name,BlurType,Laplacian Variance, FFT_Mean, FFT_Freq, ImageFileNumber, Imagetype\n"
 open_file.write(columnTitleRow)
 
 def w2d(img, mode='haar', level=1):
@@ -99,31 +98,47 @@ for imagePath in paths.list_images(args["images"]):
 	BPLR = "R1"
 	#imagenumber = 30
 	if int(xl5) <=30:
-		BPLR = "R3"
+		BPLR = "R3_NON_BLUR_LENS_Tester_Image"
 	elif int(xl5) >30 and int(xl5) <= 60:
-		BPLR ="R1_BLUR"
+		BPLR ="R1_BLUR_LENS_Tester_Image"
 	elif int(xl5) >60 and int(xl5) <= 90:
-		BPLR = "R2"
+		BPLR = "R2_NON_BLUR_LENS_Tester_Image"
 	elif int(xl5) >90 and int(xl5) <= 120:
-		BPLR = "L1"
+		BPLR = "L1_NON_BLUR_LENS_Tester_Image"
 	elif int(xl5) >120 and int(xl5) <= 150:
-		BPLR = "L2"
+		BPLR = "L2_NON_BLUR_LENS_Tester_Image"
 	elif int(xl5) >150 and int(xl5) <= 180:
-		BPLR = "L3"
+		BPLR = "L3_NON_BLUR_LENS_Tester_Image"
+	elif int(xl5) >180 and int(xl5) <= 190:
+		BPLR = "R2_NON_BLUR_LENS__Sharper_Image"
+	elif int(xl5) >190 and int(xl5) <= 200:
+		BPLR = "R1_BLUR_LENS__Sharper_Image"
 	else:
 		BPLR = "confused state" #thats a joke
 
 	text = "Not-Blurry"
+	Imagetype = "Tester_Image"
+
 
 	# if the focus measure is less than the supplied threshold,
 	# then the image should be considered "blurry"
-	if laplac_variance > args["threshold"] and FFT_Freq > 4.0 and FFT_Mean < 71.0:
-		text = "Blurry"
+	if int(xl5) < 180:
+		Imagetype = "Tester_Image"
+		if laplac_variance > 3500.0 and FFT_Freq > 4.0 and FFT_Mean < 71.0:
+			text = "Blurry"
+
+	elif int(xl5) >180:
+		Imagetype = "Sharper_Image"
+		if laplac_variance < 5000.0 and FFT_Freq > 0.5:
+			text = "Blurry"
+	else:
+		text = "Not sure bruh!"
+
 	
 	filewriter = csv.writer(open_file)
-	filewriter.writerow([BPLR, text, laplac_variance, FFT_Mean ,FFT_Freq, str(xl5)])
+	filewriter.writerow([BPLR, text, laplac_variance, FFT_Freq ,FFT_Mean, str(xl5), Imagetype])
 	#print(xl4 + " " + xm + "  " +  text)
-	print("Image Quality : "+ text + " Laplacian Variance: " + str(laplac_variance2) +" Type of BPLR : " + BPLR +" FFT_Freq : " + str(float(FFT_Freq)) + " FFT_Mean :" + str(float(FFT_Mean)) + " File Name : "  + xl5 )
+	print("Image Quality : "+ text + " Laplacian Variance: " + str(laplac_variance2) +" Type of BPLR : " + BPLR +" FFT_Freq : " + str(float(FFT_Freq)) + " FFT_Mean :" + str(float(FFT_Mean)) + " File Name : "  + xl5 + " Imagetype : " + Imagetype )
     #Popen('Blur_detector_results.csv', shell=True)
 
 	
