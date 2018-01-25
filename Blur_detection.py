@@ -1,6 +1,7 @@
 # USAGE
 # python Blur_detector.py --images [image path]
 # import the necessary packages
+#Author : Rajasekhar Josyula (rajasekhar.josyula@gmail.com)
 from imutils import paths
 import argparse
 import cv2
@@ -21,10 +22,10 @@ ap.add_argument("-t", "--threshold", type=float, default=3500.0,
 args = vars(ap.parse_args())
 
 try:
-	os.remove('filename.csv')
+	os.remove('Blur_detector_results.csv')
 except OSError:
     pass
-open_file = open("filename.csv", "a")
+open_file = open("Blur_detector_results.csv", "a")
 columnTitleRow = "BPLR_Name,BlurType,Laplacian Variance, FFT_Mean, FFT_Freq, ImageFileNumber\n"
 open_file.write(columnTitleRow)
 
@@ -122,8 +123,8 @@ for imagePath in paths.list_images(args["images"]):
 	filewriter = csv.writer(open_file)
 	filewriter.writerow([BPLR, text, laplac_variance, FFT_Mean ,FFT_Freq, str(xl5)])
 	#print(xl4 + " " + xm + "  " +  text)
-	print("Image Quality : "+ text + " Laplacian Variance: " + str(laplac_variance2) +" Type of BPLR : " + BPLR +" FFT_Freq : " + str(float(FFT_Freq)) + " FFT_Mean :" + str(float(FFT_Mean)) + " Filename : "  + xl5 )
-    #Popen('filename.csv', shell=True)
+	print("Image Quality : "+ text + " Laplacian Variance: " + str(laplac_variance2) +" Type of BPLR : " + BPLR +" FFT_Freq : " + str(float(FFT_Freq)) + " FFT_Mean :" + str(float(FFT_Mean)) + " File Name : "  + xl5 )
+    #Popen('Blur_detector_results.csv', shell=True)
 
 	
 
