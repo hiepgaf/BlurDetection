@@ -11,6 +11,23 @@ import os
 import subprocess
 from subprocess import Popen
 
+
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--images", required=True,
+	help="path to input directory of images")
+ap.add_argument("-t", "--threshold", type=float, default=3500.0,
+	help="focus measures that fall below this value will be considered 'blurry'")
+args = vars(ap.parse_args())
+
+try:
+	os.remove('filename.csv')
+except OSError:
+    pass
+open_file = open("filename.csv", "a")
+columnTitleRow = "BPLR_Name,BlurType,Laplacian Variance, FFT_Mean, FFT_Freq, ImageFileNumber\n"
+open_file.write(columnTitleRow)
+
 def w2d(img, mode='haar', level=1):
     kernel_size = 3
     scale = 1
@@ -42,19 +59,26 @@ def w2d(img, mode='haar', level=1):
     laplacian_operator_variance = stddev[0]*stddev[0]
     return(laplacian_operator_variance)
 
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--images", required=True,
-	help="path to input directory of images")
-ap.add_argument("-t", "--threshold", type=float, default=3500.0,
-	help="focus measures that fall below this value will be considered 'blurry'")
-args = vars(ap.parse_args())
+def fourier_transform(image):
+        np.seterr(all = 'ignore')
+        img_gry = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        rows,cols = img_gry.shape
+        crow, ccol = rows/2, cols/2
+        f = np.fft.fft2(img_gry)
+        fshift = np.fft.fftshift(f)
+        fshift[crow-75:crow+75,ccol-75:ccol+75] = 0
+        f_ishift = np.fft.ifftshift(fshift)
+        img_fft = np.fft.ifft2(f_ishift)
+        img_fft = 20*np.log(np.abs(img_fft))
+        freqs = np.fft.fftfreq(len(img_gry))
+        w = np.fft.fft(fshift)
+        idx = np.argmax(np.abs(w))
+        freq = freqs[idx]
+        freq_in_hertz = abs(freq * 10)
+        fourier_transform_mean = np.mean(img_fft)
+        return(freq_in_hertz, fourier_transform_mean)
 
-# loop over the input images
-os.remove('filename.csv')
-open_file = open("filename.csv", "a")
-columnTitleRow = "BPLR_Name,BlurType,Laplacian Variance, ImageFileNumber\n"
-open_file.write(columnTitleRow)
+
 for imagePath in paths.list_images(args["images"]):
 
 	# load the image, convert it to grayscale, and compute the
@@ -63,7 +87,9 @@ for imagePath in paths.list_images(args["images"]):
 	#print(imagePath)
 	image = cv2.imread(imagePath)
 	laplac_variance = w2d(image,'db1',7)
-	laplac_variance2 = int(laplac_variance)
+	laplac_variance2 = float(laplac_variance)
+	(FFT_Mean,FFT_Freq) = fourier_transform(image)
+	#print (FFT_Mean)
 	
 	xl = str(imagePath)
 	(xl1,xl2) = xl.split("/",1)
@@ -75,27 +101,34 @@ for imagePath in paths.list_images(args["images"]):
 		BPLR = "R3"
 	elif int(xl5) >30 and int(xl5) <= 60:
 		BPLR ="R1_BLUR"
-	else:
+	elif int(xl5) >60 and int(xl5) <= 90:
 		BPLR = "R2"
-	
-	
+	elif int(xl5) >90 and int(xl5) <= 120:
+		BPLR = "L1"
+	elif int(xl5) >120 and int(xl5) <= 150:
+		BPLR = "L2"
+	elif int(xl5) >150 and int(xl5) <= 180:
+		BPLR = "L3"
+	else:
+		BPLR = "confused state" #thats a joke
+
 	text = "Not-Blurry"
 
 	# if the focus measure is less than the supplied threshold,
 	# then the image should be considered "blurry"
-	if laplac_variance > args["threshold"]:
+	if laplac_variance > args["threshold"] and FFT_Freq > 4.0 and FFT_Mean < 71.0:
 		text = "Blurry"
 	
 	filewriter = csv.writer(open_file)
-	filewriter.writerow([BPLR, text, laplac_variance,xl5])
+	filewriter.writerow([BPLR, text, laplac_variance, FFT_Mean ,FFT_Freq, str(xl5)])
 	#print(xl4 + " " + xm + "  " +  text)
-	print(text + "  " + str(laplac_variance2)  + "    " + BPLR + " Filename : "  + xl5 )
+	print("Image Quality : "+ text + " Laplacian Variance: " + str(laplac_variance2) +" Type of BPLR : " + BPLR +" FFT_Freq : " + str(float(FFT_Freq)) + " FFT_Mean :" + str(float(FFT_Mean)) + " Filename : "  + xl5 )
     #Popen('filename.csv', shell=True)
 
 	
 
 	#show the image
-	cv2.putText(image, "{}.png : {} : {:.2f}".format(xl5, text, laplac_variance2), (10, 30),
-	cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
-	cv2.imshow("Image", image)
-	key = cv2.waitKey(0)
+	#cv2.putText(image, "{}.png : {} : {:.1f}".format(xl5, text, laplac_variance2), (10, 30),
+	#cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+	#cv2.imshow("Image", image)
+	#key = cv2.waitKey(0)
