@@ -78,6 +78,58 @@ def fourier_transform(image):
         fourier_transform_mean = np.mean(img_fft)
         return(freq_in_hertz, fourier_transform_mean)
 
+def laplacian_variance(image):
+		def int16_to_int8(n):
+			mask = (1 << 8) - 1
+			return [(n >> k) & mask for k in range(0, 16, 8)]
+		kernel_size = 3
+		scale = 1
+		delta = 0
+		ddepth = cv2.CV_16UC3 #//Since our input is CV_8U we define ddepth = CV_16S to avoid overflow
+		self16 = image.astype(np.uint16)
+		print(self16.shape,self16.dtype)
+		'''
+		imsave("C:\CachedImage.png",self.curFrame)
+		print("Saving CurFrame")
+		image = imageio.imread("C:\CachedImage.png")
+		print("Reading saved image")
+ 		print(image.shape, image.dtype)
+ 		RGBImg = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+		#RGBImg = np.stack(image*3)		
+ 		print("saved as RGB Image")
+ 		print(RGBImg)
+ 		print(RGBImg.shape,RGBImg.dtype)
+ 		cv2.imshow('Normal image',image)
+ 		cv2.imshow('RGB IMG',RGBImg)
+ 		'''
+		image_matrix = np.zeros(shape=(964,1280, 3), dtype=np.uint8)
+ 		for row in range(964):
+			for col in range(1280):
+				image_matrix[row][col][0] = int16_to_int8(self16[row][col])[1] # Picking most significant byte only
+				image_matrix[row][col][1] = int16_to_int8(self16[row][col])[1]  # Picking most significant byte only
+				image_matrix[row][col][2] = int16_to_int8(self16[row][col])[1]  # Picking most significant byte only
+		blur = cv2.GaussianBlur(image_matrix,(3,3),0,0, cv2.BORDER_DEFAULT)
+		print(blur.dtype)
+		cv2.imshow('blur image',blur)
+		#printself.curFrame()
+		laplacian = cv2.Laplacian(blur, ddepth = ddepth, ksize = kernel_size, scale = scale,delta = delta, borderType=cv2.BORDER_DEFAULT)
+
+		#print (laplacian2)
+		(mean, stddev) = cv2.meanStdDev(laplacian,image_matrix)
+		#variance = cv2.variance(laplacian)
+		laplacian_operator_std_dev = stddev[0]
+		lapl_var = stddev[0]*stddev[0]
+        #laplacian_operator_variance2 = variance[0]
+        #print(variance)
+        #print(mean,stddev)
+
+        #print(np.var(stddev, ddof=1))
+		return (lapl_var)
+
+def int16_to_int8(n):
+		mask = (1 << 8) - 1
+		return [(n >> k) & mask for k in range(0, 16, 8)]
+
 
 for imagePath in paths.list_images(args["images"]):
 
@@ -85,10 +137,57 @@ for imagePath in paths.list_images(args["images"]):
 	# focus measure of the image using the Variance of Laplacian
 	# method
 	#print(imagePath)
+
 	image = cv2.imread(imagePath)
+	print(image.dtype)
+
+
+	kernel_size = 3
+	scale = 1
+	delta = 0
+	print(image.dtype,image.shape)
+	ddepth = cv2.CV_16UC3 #//Since our input is CV_8U we define ddepth = CV_16S to avoid overflow
+	self16 = image.astype(np.uint16)
+	print(self16.shape,self16.dtype)
+	'''
+	imsave("C:\CachedImage.png",self.curFrame)
+	print("Saving CurFrame")
+	image = imageio.imread("C:\CachedImage.png")
+	print("Reading saved image")
+		print(image.shape, image.dtype)
+		RGBImg = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+	#RGBImg = np.stack(image*3)		
+		print("saved as RGB Image")
+		print(RGBImg)
+		print(RGBImg.shape,RGBImg.dtype)
+		cv2.imshow('Normal image',image)
+		cv2.imshow('RGB IMG',RGBImg)
+		'''
+	image_matrix = np.zeros(shape=(964,1280, 3), dtype=np.uint8)
+	for row in range(964):
+		for col in range(1280):
+			image_matrix[row][col][0] = int16_to_int8(self16[row][col])[1] # Picking most significant byte only
+			image_matrix[row][col][1] = int16_to_int8(self16[row][col])[1]  # Picking most significant byte only
+			image_matrix[row][col][2] = int16_to_int8(self16[row][col])[1]  # Picking most significant byte only
+	blur = cv2.GaussianBlur(image_matrix,(3,3),0,0, cv2.BORDER_DEFAULT)
+	print(blur.dtype)
+	cv2.imshow('blur image',blur)
+	#printself.curFrame()
+	laplacian = cv2.Laplacian(blur, ddepth = ddepth, ksize = kernel_size, scale = scale,delta = delta, borderType=cv2.BORDER_DEFAULT)
+
+	#print (laplacian2)
+	(mean, stddev) = cv2.meanStdDev(laplacian,image_matrix)
+	#variance = cv2.variance(laplacian)
+	laplacian_operator_std_dev = stddev[0]
+	lapl_var = stddev[0]*stddev[0]
+	print(lapl_var)
+
+
 	laplac_variance = w2d(image,'db1',7)
 	laplac_variance2 = float(laplac_variance)
 	(FFT_Mean,FFT_Freq) = fourier_transform(image)
+	LPL_VAR = laplacian_variance(image)
+	#lpx = laplacian_x(image)
 	#print (FFT_Mean)
 	
 	xl = str(imagePath)
@@ -137,6 +236,7 @@ for imagePath in paths.list_images(args["images"]):
 	
 	filewriter = csv.writer(open_file)
 	filewriter.writerow([BPLR, text, laplac_variance, FFT_Freq ,FFT_Mean, str(xl5), Imagetype])
+	#print(lpx)
 	#print(xl4 + " " + xm + "  " +  text)
 	print("Image Quality : "+ text + " Laplacian Variance: " + str(laplac_variance2) +" Type of BPLR : " + BPLR +" FFT_Freq : " + str(float(FFT_Freq)) + " FFT_Mean :" + str(float(FFT_Mean)) + " File Name : "  + xl5 + " Imagetype : " + Imagetype )
     #Popen('Blur_detector_results.csv', shell=True)
